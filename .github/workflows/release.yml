@@ -100,24 +100,24 @@ jobs:
             const { owner, repo } = context.repo;
             core.info(`目标 tag: ${tag}`);
 
-            let rel;
-            try {
-              ({ data: rel } = await github.rest.repos.getReleaseByTag({ owner, repo, tag }));
-            } catch (e) {
-              // 404 说明 tauri-action 根本没建出草稿。给出可读原因，而不是甩一个裸 404。
+            // 注意：getReleaseByTag 查不到 draft（GitHub 既定行为），必须 list 再匹配。
+            const { data: all } = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+            const rel = all.find((r) => r.tag_name === tag);
+
+            if (!rel) {
               core.setFailed(
-                `找不到 tag ${tag} 对应的 Release。\n` +
-                  `常见原因：tauri-action 的 tagName 传了空值——push tag 触发时 inputs.tag ` +
-                  `为空，必须写成 inputs.tag || github.ref_name 回退。\n` +
-                  `原始错误: ${e.message}`
+                `tag ${tag} 对应的 Release 不存在。仓库里现有 release：\n` +
+                  (all.length
+                    ? all.map((r) => `  - ${r.tag_name} (draft=${r.draft}, assets=${r.assets.length})`).join("\n")
+                    : "  （一个都没有）")
               );
               return;
             }
 
             if (rel.draft) {
               await github.rest.repos.updateRelease({ owner, repo, id: rel.id, draft: false });
-              core.info(`已发布 ${tag}，资产 ${rel.assets.length} 个`);
+              core.info(`已发布 ${tag}，资产 ${rel.assets.length} 个：`);
               for (const a of rel.assets) core.info(`  - ${a.name} (${a.size} bytes)`);
             } else {
-              core.info(`${tag} 已是 published 状态，跳过`);
+              core.info(`${tag} 已是 published 状态，跳过（资产 ${rel.assets.length} 个）`);
             }
