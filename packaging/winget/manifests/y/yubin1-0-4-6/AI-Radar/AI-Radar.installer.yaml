@@ -1,0 +1,14 @@
+# 本地构建的哈希，仅用于开发期核对。
+# 正式提交前必须用 CI 构建产物替换——见 ../README.md 的 sync-hash.mjs
+InstallerType: null
+UpgradeBehavior: install
+ReleaseDate: 2026-10-04
+InstallerSha256: a25344f8a954fcf32f443ff7fb360f4172441f05cfc19b6bd1757bfc2d9c2294
+InstallerUrl: https://github.com/yubin1-0-4-6/AI-Radar/releases/download/v0.1.0/AI%20Radar_0.1.0_x64-setup.exe
+InstallerSwitches:
+  Silent: /S
+  SilentWithProgress: /S
+Installers:
+  - Architecture: x64
+    InstallerType: null
+    Scope: user
