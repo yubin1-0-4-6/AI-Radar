@@ -1,11 +1,43 @@
+<div align="center">
+
 # AI Radar · 全球 AI 情报雷达
 
-一键拉取全球 AI 最新情报：**新发布模型** / **免费可用模型** / **泄漏与匿名内测线索**，
-外加官方发布与开源生态。Tauri + React 桌面应用，托盘常驻。
+**一键拉取全球 AI 最新情报** —— 新发布模型 / 免费可用模型 / 泄漏与匿名内测线索
+
+[![release](https://github.com/yubin1-0-4-6/AI-Radar/actions/workflows/release.yml/badge.svg)](https://github.com/yubin1-0-4-6/AI-Radar/actions/workflows/release.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
+![tauri](https://img.shields.io/badge/Tauri-2.12-24c8db?logo=tauri&logoColor=white)
+![react](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=black)
+![typescript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
+![sources](https://img.shields.io/badge/情报源-12%20可用-34d399)
+![license](https://img.shields.io/badge/泄露线索可信度分级-ff69b4)
+
+Tauri 2 + React 桌面应用 · 托盘常驻 · 单轮约 2 秒拉完 380+ 条
+
+</div>
+
+![界面截图](docs/screenshot.png)
+
+> 截图摄于桌面版真实运行状态：左侧为分类与数据源健康度，右侧为情报卡片流。
+> 红色「泄漏·匿名内测」分类带可信度标记（`未发布权重` / `有说法·未证实` / `有证据·多源印证`）。
+
+---
+
+## 这个应用解决什么问题
+
+每天想看"全世界 AI 又出了什么新模型、哪些能白嫖、哪些正在内测"，得手动刷十几个网站。
+AI Radar 把这些聚到一个窗口，点一次刷新全部拉完，并按**你真正关心的三件事**分类：
+
+| 分类 | 判定依据 | 举例 |
+|---|---|---|
+| **泄漏·匿名内测** | 未正式发布的权重出现在公开仓库，或社区/媒体出现明确说法 | 带 `preview`/`ngl` 标签的权重、`内测` 报道 |
+| **免费可用** | OpenRouter 上 `pricing == 0`（权威判定），或开放权重可本地跑 | `prompt` 与 `completion` 定价均为 0 的模型 |
+| **新模型** | HuggingFace 新上传且已有热度，OpenRouter 新上架 | 热门权重、参数与上下文长度 |
 
 ## 关于"匿名内测模型"的诚实说明
 
-不存在"全球匿名内测模型"的权威接口——未发布的模型不会出现在任何公开 API 里。
+不存在"全球匿名内测模型"的权威接口——**未发布的模型不会出现在任何公开 API 里**。
 本应用能提供的是**可验证的公开痕迹**，并对每一条标注可信度：
 
 | 标记 | 含义 | 数据来源 |
@@ -16,7 +48,45 @@
 
 这些**不是厂商官方确认**，UI 上会一直显示。把它当线索雷达，不当新闻源。
 
-## 数据源（13 个，全部实测通过，单轮约 2 秒）
+## 安装
+
+从 [Releases](https://github.com/yubin1-0-4-6/AI-Radar/releases) 下载安装包：
+
+| 平台 | 安装包 |
+|---|---|
+| Windows | `AI Radar_<version>_x64-setup.exe`（NSIS）或 `.msi` |
+
+安装后桌面与开始菜单会出现入口，程序常驻系统托盘：
+**左键**托盘图标唤出窗口，**右键**出菜单（打开 / 立即刷新 / 退出）。
+关闭窗口不会退出，只有托盘菜单的「退出」才是真退出。
+
+### 从源码构建
+
+```bash
+git clone https://github.com/yubin1-0-4-6/AI-Radar.git
+cd AI-Radar
+npm install
+
+npm run probe       # 对全部源跑真实网络验证，打印健康度报告
+npm run dev         # 浏览器预览模式（无托盘/通知）
+npm run app         # 桌面应用（Tauri）
+npm run app:build   # 打包 Windows 安装包（nsis + msi）
+```
+
+桌面模式需要 Rust 工具链：
+
+```powershell
+winget install --id Rustlang.Rustup -e --source winget
+```
+
+## 使用
+
+1. 点右上角 **一键刷新** —— 约 2 秒拉完 12 个源
+2. 左侧按分类筛选，或用搜索框（按 `/` 聚焦，按 `R` 刷新）
+3. 点卡片标记已读，点 **打开原文 ↗** 跳到出处
+4. 设置里可调自动刷新间隔、开机自启、桌面通知、只看未读
+
+## 数据源（12 个，全部实测通过，单轮约 2 秒）
 
 | 源 | 覆盖 |
 |---|---|
@@ -33,50 +103,36 @@
 已实测不可用并已替换的方案：DeepSeek / Moonshot / 智谱 / MiniMax 的 `rss.xml`
 返回的是前端渲染 HTML，Qwen 的 `index.xml` 停更一年以上——统一改由 Google News 覆盖。
 
-### 已下线的板块
+<details>
+<summary>已下线的板块</summary>
 
-- **论文 / arXiv**（`cs.AI`、`cs.CL`、`cs.LG`）暂时移除。
-  恢复只需三步：`src/types.ts` 的 `IntelKind` 加回 `"paper"`、`SourceId` 加回 `"arxiv"`；
-  `src/classify.ts` 的 `KIND_LABEL`、`src/ui/Sidebar.tsx` 的 `ORDER` 与 `DOT`、
-  `src/ui/ItemCard.tsx` 的 `KIND_STYLE` 各加一行；再把 `fetchArxiv` 注册进
-  `src/sources/index.ts` 的 `SOURCES` 并补回适配器文件。
+**论文 / arXiv**（`cs.AI`、`cs.CL`、`cs.LG`）暂时移除。
+恢复需改：`src/types.ts` 的 `IntelKind` 加回 `"paper"`、`SourceId` 加回 `"arxiv"`；
+`src/classify.ts` 的 `KIND_LABEL`、`src/ui/Sidebar.tsx` 的 `ORDER` 与 `DOT`、
+`src/ui/ItemCard.tsx` 的 `KIND_STYLE` 各加一行；再把 `fetchArxiv` 注册进
+`src/sources/index.ts` 的 `SOURCES` 并补回适配器文件。
 
-## 运行
+</details>
 
-```bash
-npm install
-npm run probe     # 对全部源跑真实网络验证，打印健康度报告
-npm run dev       # 浏览器预览模式（无托盘/通知）
-npm run app       # 桌面应用（Tauri）
-npm run app:build # 打包 Windows 安装包（nsis + msi）
-```
+## 隐私
 
-已构建产物：
+数据全部在本地缓存，**不上传任何内容**。已读 / 收藏 / 设置存于本地存储。
+「打开原文」只在系统浏览器里打开外部链接（Rust 侧有 http/https 白名单）。
 
-```
-src-tauri/target/release/bundle/nsis/AI Radar_0.1.0_x64-setup.exe   (2.3 MB)
-src-tauri/target/release/bundle/msi/AI Radar_0.1.0_x64_en-US.msi    (3.2 MB)
-```
-
-桌面模式依赖 Rust（本机已装 rustc 1.99.0）。若需重装：
-
-```powershell
-winget install --id Rustlang.Rustup -e --source winget
-```
-
-### 桌面端排查
+## 桌面端排查
 
 ```bash
-npm run app:cdp                # 带 WebView2 调试端口启动
-node scripts/cdp-probe.mjs     # 从运行中的页面读真实状态（源成功率、DOM、报错）
+npm run app:cdp                            # 带 WebView2 调试端口启动
+node scripts/cdp-probe.mjs                 # 读运行中页面的真实状态（源成功率、DOM、报错）
+node scripts/capture-screenshot.mjs out.png  # 从桌面端 WebView 直接截图
 ```
 
 正式配置**不带**调试端口（`src-tauri/tauri.conf.json`），
 需要时用 `src-tauri/tauri.cdp.json` 叠加启用。
 
-### 已知限制
+## 已知限制
 
-- `pnpm dev` 浏览器预览下 **Mistral 源会失败**：Vite dev proxy 对该路径有异常行为。
+- 浏览器预览模式（`npm run dev`）下 **Mistral 源会失败**：Vite dev proxy 对该路径有异常行为。
   桌面模式走 `tauri-plugin-http` 直连，不受影响（`npm run probe` 里始终正常）。
 - Google News 的条目链接是 `news.google.com` 跳转地址，点击后在系统浏览器打开可正常到达原文。
 - Reddit 按 UA 做风控，必须用唯一 User-Agent（见 `src/lib/http.ts`），
@@ -98,6 +154,8 @@ node scripts/cdp-probe.mjs     # 从运行中的页面读真实状态（源成�
    必须在 `server.watch.ignored` 里排除。
 7. **GitHub 用 `pushed_at` 当时间戳会让老仓库永远排第一**，必须用 `created_at`
    并把时间过滤下推给 GitHub 服务端（`created:>`）。
+8. **`.gitignore` 里 `target/` 不能写成 `/target`**：前导斜杠只锚定到文件所在目录，
+   会漏掉 `src-tauri/target`（本机 9.5 GB）。
 
 ## 结构
 
@@ -108,11 +166,16 @@ src/
   sources/             各情报源适配器，一个源一个文件
   classify.ts          分类引擎：泄漏信号强度、免费判定、厂商识别
   store.ts             本地持久化（已读 / 收藏 / 设置）
-  shell.ts             托盘、通知、外部链接（Tauri 能力入口）
+  shell.ts             托盘、通知、外部链接、开机自启（Tauri 能力入口）
 scripts/
   probe.ts             真实网络健康度验证
+  cdp-probe.mjs        从运行中的桌面端读真实状态
+  capture-screenshot.mjs  从桌面端 WebView 截图
   make-icon.mjs        零依赖生成应用图标
-src-tauri/             托盘常驻 / 角标 / 通知 / 外部链接白名单
+src-tauri/             托盘常驻 / 角标 / 通知 / 开机自启 / 外部链接白名单
+docs/screenshot.png    README 配图
 ```
 
-数据全部在本地，不上传任何内容。
+## License
+
+[MIT](LICENSE) © 2026 yubin1-0-4-6
