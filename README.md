@@ -54,11 +54,13 @@ AI Radar 把这些聚到一个窗口，点一次刷新全部拉完，并按**你
 
 从 [Releases](https://github.com/yubin1-0-4-6/AI-Radar/releases) 下载安装包：
 
-| 平台 | 安装包 |
-|---|---|
-| Windows | `AI Radar_<version>_x64-setup.exe`（NSIS）或 `.msi` |
+| 平台 | 安装包 | 备注 |
+|---|---|---|
+| Windows | `AI Radar_<version>_x64-setup.exe` | NSIS，双击安装 |
+| macOS | `AI Radar_<version>_x64.dmg` | **未签名未公证**，首次打开需右键 → 打开 |
+| Linux | `AI Radar_<version>_amd64.deb` | |
 
-安装后桌面与开始菜单会出现入口，程序常驻系统托盘：
+Windows 安装后桌面与开始菜单会出现入口，程序常驻系统托盘：
 **左键**托盘图标唤出窗口，**右键**出菜单（打开 / 立即刷新 / 退出）。
 关闭窗口不会退出，只有托盘菜单的「退出」才是真退出。
 

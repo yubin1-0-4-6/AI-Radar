@@ -28,7 +28,9 @@ jobs:
             bundles: nsis
           - os: macos-latest
             label: macOS
-            bundles: app
+            # 必须用 dmg 而非 app：`--bundles app` 只产出目录 AI Radar.app，
+            # tauri-action 在 macOS 上按 *.dmg 找产物，找不到会静默跳过上传（job 仍报成功）
+            bundles: dmg
           - os: ubuntu-22.04
             label: Linux
             bundles: deb
@@ -76,11 +78,11 @@ jobs:
             | 平台 | 产物 |
             |---|---|
             | Windows | NSIS 安装包（`.exe`），双击安装 |
-            | macOS | `.app`（**未签名未公证**，首次打开需右键→打开） |
+            | macOS | `.dmg`（**未签名未公证**，首次打开需右键→打开） |
             | Linux | `.deb` |
 
             > macOS 报「无法验证开发者」时：
-            > `xattr -dr com.apple.quarantine "AI Radar.app"`
+            > `xattr -dr com.apple.quarantine "AI Radar.dmg"`
           releaseDraft: true
           prerelease: false
           args: --bundles ${{ matrix.bundles }}
@@ -115,7 +117,9 @@ jobs:
             }
 
             if (rel.draft) {
-              await github.rest.repos.updateRelease({ owner, repo, id: rel.id, draft: false });
+              // 注意路径参数名是 release_id，写成 id 会被 Octokit 当成 body 字段，
+              // PATCH 到 /releases/ 上直接 404
+              await github.rest.repos.updateRelease({ owner, repo, release_id: rel.id, draft: false });
               core.info(`已发布 ${tag}，资产 ${rel.assets.length} 个：`);
               for (const a of rel.assets) core.info(`  - ${a.name} (${a.size} bytes)`);
             } else {
