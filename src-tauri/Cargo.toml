@@ -1,6 +1,6 @@
 [package]
 name = "ai-radar"
-version = "0.1.0"
+version = "0.1.1"
 description = "AI Radar · 全球 AI 情报雷达"
 authors = ["AI Radar"]
 edition = "2021"
