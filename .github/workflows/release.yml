@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "要打包的 tag，例如 v0.1.0"
+        description: "要打包的 tag，例如 v0.1.1"
         required: true
         type: string
 
@@ -16,7 +16,11 @@ permissions:
   contents: write
 
 jobs:
-  bundle:
+  # 只负责构建。各平台互不接触 Release，产物先落成 workflow artifact。
+  # —— 之前让每个矩阵 job 各自调 tauri-action，它们会争抢同一个 tag 的
+  #    Release 创建权，先到先得、慢的那个就冲突。这是此前多次运行失败、
+  #    以及 macOS 静默不产物的共同根因。构建与发布必须分开。
+  build:
     name: 构建 ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -26,16 +30,17 @@ jobs:
           - os: windows-latest
             label: Windows
             bundles: nsis
-          # macOS 暂时下线：job 报success 但产不出任何资产。
-          # --bundles app 只生成目录 AI Radar.app，--bundles dmg 也没有产物上传，
-          # 而 job 日志需要鉴权才能读到，根因未确认之前不想让 Release 里出现空平台。
-          # 确认原因后把这一项加回来即可：
+            out: nsis
+          # macOS 暂时下线：job 报 success 但产不出任何资产，根因未确认。
+          # 确认后把下面三行加回 matrix 即可：
           #   - os: macos-latest
           #     label: macOS
           #     bundles: dmg
+          #     out: dmg
           - os: ubuntu-22.04
             label: Linux
             bundles: deb
+            out: deb
 
     steps:
       - uses: actions/checkout@v4
@@ -65,72 +70,47 @@ jobs:
 
       - run: npm ci
 
-      - name: 构建并上传到 Release 草稿
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 构建安装包
+        run: npx tauri build --bundles ${{ matrix.bundles }}
+
+      - uses: actions/upload-artifact@v4
         with:
-          # 必须带回退：push tag 时 inputs.tag 为空，直接用会让 tauri-action
-          # 拿到空 tagName 而静默跳过创建 Release，导致后续 publish 查不到草稿。
-          tagName: ${{ inputs.tag || github.ref_name }}
-          releaseName: AI Radar ${{ inputs.tag || github.ref_name }}
-          releaseBody: |
-            由 GitHub Actions 自动构建。
+          name: bundle-${{ matrix.out }}
+          path: src-tauri/target/release/bundle/${{ matrix.out }}/
+          if-no-files-found: error
 
-            | 平台 | 产物 |
-            |---|---|
-            | Windows | NSIS 安装包（`.exe`），双击安装 |
-            | Linux | `.deb` |
-
-          releaseDraft: true
-          prerelease: false
-          args: --bundles ${{ matrix.bundles }}
-
-  # 三个平台都成功后才解除草稿，避免出现半成品 Release
-  publish:
+  # 唯一创建 Release 的地方。needs 保证所有平台都构建成功才发布。
+  release:
     name: 发布 Release
-    needs: bundle
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: 解除草稿状态
-        uses: actions/github-script@v7
+      - uses: actions/download-artifact@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const tag = '${{ inputs.tag }}' || context.ref.replace('refs/tags/', '');
-            const { owner, repo } = context.repo;
-            core.info(`目标 tag: ${tag}`);
+          path: bundles
+          merge-multiple: true
 
-            // 注意：getReleaseByTag 查不到 draft（GitHub 既定行为），必须 list 再匹配。
-            const { data: all } = await github.rest.repos.listReleases({ owner, repo, per_page: 100 });
+      - name: 生成发布说明
+        run: |
+          cat > notes.md <<'EOF'
+          由 GitHub Actions 自动构建。
 
-            // 同一 tag 可能同时存在「已发布」和「草稿」两条记录：
-            // 重跑一个已经发过的 tag 时 tauri-action 会另建草稿。
-            // 这时优先认已发布的那条，当作无事发生直接成功，不去和它抢解除草稿。
-            const same = all.filter((r) => r.tag_name === tag);
-            const published = same.find((r) => !r.draft);
-            const draft = same.find((r) => r.draft);
+          | 平台 | 产物 |
+          |---|---|
+          | Windows | NSIS 安装包（`.exe`），双击安装 |
+          | Linux | `.deb` |
+          EOF
 
-            if (published) {
-              core.info(`${tag} 已是 published 状态（资产 ${published.assets.length} 个），跳过`);
-              if (draft) core.info(`注意：另有一个同 tag 的草稿（id ${draft.id}），未处理`);
-              return;
-            }
-
-            if (!draft) {
-              core.setFailed(
-                `tag ${tag} 既没有已发布也没有草稿 Release。仓库现有 release：\n` +
-                  (all.length
-                    ? all.map((r) => `  - ${r.tag_name} (draft=${r.draft}, assets=${r.assets.length})`).join("\n")
-                    : "  （一个都没有）")
-              );
-              return;
-            }
-
-            // 路径参数名必须是 release_id，写成 id 会被 Octokit 当成 body 字段，
-            // PATCH 到 /releases/ 上直接 404
-            await github.rest.repos.updateRelease({
-              owner, repo, release_id: draft.id, draft: false,
-            });
-            core.info(`已发布 ${tag}，资产 ${draft.assets.length} 个：`);
-            for (const a of draft.assets) core.info(`  - ${a.name} (${a.size} bytes)`);
+      - name: 创建 Release 并上传全部资产
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: AI Radar ${{ inputs.tag || github.ref_name }}
+          body_path: notes.md
+          draft: false
+          prerelease: false
+          # 一条命令上传所有平台的产物，避免多 job 争抢
+          files: |
+            *.exe
+            *.deb
+          fail_on_unmatched_files: true
