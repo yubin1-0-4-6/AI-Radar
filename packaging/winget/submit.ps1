@@ -25,7 +25,12 @@ param(
   [string]$WorkDir = "$env:TEMP\winget-submit"
 )
 
-$ErrorActionPreference = "Stop"
+# gh and git write progress/spinner output to stderr. With the default
+# "Stop", PowerShell 5.1 turns any native-command stderr into a terminating
+# error, so a perfectly successful command aborts the script before
+# $LASTEXITCODE is ever inspected. Every step below checks the exit code
+# explicitly instead.
+$ErrorActionPreference = "Continue"
 
 $Owner = "yubin1-0-4-6"
 $Upstream = "microsoft/winget-pkgs"
@@ -67,7 +72,9 @@ $forkExists = (Invoke-Native "gh" @("api", "repos/$Owner/winget-pkgs")) -eq 0
 
 if (-not $forkExists) {
   Write-Host "==> forking $Upstream ..."
-  gh repo fork $Upstream --clone=false --remote=false
+  # 注意：不能同时传仓库参数和 --remote（gh 会报
+  # "the --remote flag is unsupported when a repository argument is provided"）
+  gh repo fork $Upstream --clone=false
   if ($LASTEXITCODE -ne 0) { throw "fork failed" }
 } else {
   Write-Host "==> fork already exists: $Owner/winget-pkgs"
@@ -98,7 +105,10 @@ try {
     return
   }
 
-  git commit -m "New package: $Owner.AIRadar v$pkgVer" *> $null
+  # 用 -c 显式指定身份：这个 clone 在临时目录里，不受主仓库的
+  # git config --local 影响，会回落到全局身份，PR 提交就会挂到错的账号上
+  git -c "user.name=$Owner" -c "user.email=$Owner@users.noreply.github.com" `
+      commit -m "New package: $Owner.AIRadar v$pkgVer" *> $null
   if ($LASTEXITCODE -ne 0) { throw "commit failed" }
   git push origin $branch *> $null
   if ($LASTEXITCODE -ne 0) { throw "push failed" }
