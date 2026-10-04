@@ -26,11 +26,13 @@ jobs:
           - os: windows-latest
             label: Windows
             bundles: nsis
-          - os: macos-latest
-            label: macOS
-            # 必须用 dmg 而非 app：`--bundles app` 只产出目录 AI Radar.app，
-            # tauri-action 在 macOS 上按 *.dmg 找产物，找不到会静默跳过上传（job 仍报成功）
-            bundles: dmg
+          # macOS 暂时下线：job 报success 但产不出任何资产。
+          # --bundles app 只生成目录 AI Radar.app，--bundles dmg 也没有产物上传，
+          # 而 job 日志需要鉴权才能读到，根因未确认之前不想让 Release 里出现空平台。
+          # 确认原因后把这一项加回来即可：
+          #   - os: macos-latest
+          #     label: macOS
+          #     bundles: dmg
           - os: ubuntu-22.04
             label: Linux
             bundles: deb
@@ -78,11 +80,8 @@ jobs:
             | 平台 | 产物 |
             |---|---|
             | Windows | NSIS 安装包（`.exe`），双击安装 |
-            | macOS | `.dmg`（**未签名未公证**，首次打开需右键→打开） |
             | Linux | `.deb` |
 
-            > macOS 报「无法验证开发者」时：
-            > `xattr -dr com.apple.quarantine "AI Radar.dmg"`
           releaseDraft: true
           prerelease: false
           args: --bundles ${{ matrix.bundles }}

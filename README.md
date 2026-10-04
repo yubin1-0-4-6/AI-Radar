@@ -6,7 +6,7 @@
 
 [![release](https://github.com/yubin1-0-4-6/AI-Radar/actions/workflows/release.yml/badge.svg)](https://github.com/yubin1-0-4-6/AI-Radar/actions/workflows/release.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
+![platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg)
 ![tauri](https://img.shields.io/badge/Tauri-2.12-24c8db?logo=tauri&logoColor=white)
 ![react](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=black)
 ![typescript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
@@ -57,8 +57,10 @@ AI Radar 把这些聚到一个窗口，点一次刷新全部拉完，并按**你
 | 平台 | 安装包 | 备注 |
 |---|---|---|
 | Windows | `AI Radar_<version>_x64-setup.exe` | NSIS，双击安装 |
-| macOS | `AI Radar_<version>_x64.dmg` | **未签名未公证**，首次打开需右键 → 打开 |
 | Linux | `AI Radar_<version>_amd64.deb` | |
+
+> macOS 构建目前在 CI 里产不出资产（job 报成功但没有可上传的产物，根因待查），
+> 因此暂不提供 `.dmg`。需要的话可本地 `npm run app:build` 自行打包。
 
 Windows 安装后桌面与开始菜单会出现入口，程序常驻系统托盘：
 **左键**托盘图标唤出窗口，**右键**出菜单（打开 / 立即刷新 / 退出）。
