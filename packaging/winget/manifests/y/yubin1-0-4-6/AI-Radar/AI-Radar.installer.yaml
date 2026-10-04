@@ -3,8 +3,8 @@
 InstallerType: null
 UpgradeBehavior: install
 ReleaseDate: 2026-10-04
-InstallerSha256: a1268ef85f7eef62a8bd4117ba6591c5281bd62297b111c696bb59c662774b2b
-InstallerUrl: https://github.com/yubin1-0-4-6/AI-Radar/releases/download/v0.1.0/AI.Radar_0.1.0_x64-setup.exe
+InstallerSha256: dc710c33de0448bfb0390c95c9e5ee292a79eb64e6469c6fbd642393faaa9cc7
+InstallerUrl: https://github.com/yubin1-0-4-6/AI-Radar/releases/download/v0.1.1/AI.Radar_0.1.1_x64-setup.exe
 InstallerSwitches:
   Silent: /S
   SilentWithProgress: /S
