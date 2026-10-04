@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# 前端构建产物
+dist/
+
+# Cargo 编译产物（本机 src-tauri/target 有 9.5 GB，绝不能进版本库）
+# 注意不能写成 /target，那只锚定到本文件所在目录，会漏掉 src-tauri/target
+target/
+
+# Tauri 自动生成的 capability schema
+src-tauri/gen/schemas
+
+# 环境变量：可能含密钥
+.env
+.env.*
+!.env.example
+
+# npm 可能存 token
+.npmrc
+
+# 日志与临时文件
+*.log
+*.log.*
+npm-debug.log*
+yarn-error.log*
+*.tmp
+*.bak
+*.orig
+*.rej
+*.swp
+*~
+*.rs.bk
+
+# TypeScript 增量编译缓存
+*.tsbuildinfo
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+!.vscode/extensions.json
+
+# 操作系统产物
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini

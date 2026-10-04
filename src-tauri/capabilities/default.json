@@ -1,0 +1,25 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "AI Radar 权限：HTTP 拉取情报源 + 系统通知 + 外部链接",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-unminimize",
+    "core:window:allow-set-focus",
+    "core:event:default",
+    "notification:default",
+    "opener:default",
+    "autostart:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled",
+    {
+      "identifier": "http:default",
+      "comment": "http:default 只开 fetch 能力、不放行任何 origin，必须显式声明目标域名",
+      "allow": [{ "url": "https://**" }]
+    }
+  ]
+}
