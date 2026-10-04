@@ -72,8 +72,9 @@ $forkExists = (Invoke-Native "gh" @("api", "repos/$Owner/winget-pkgs")) -eq 0
 
 if (-not $forkExists) {
   Write-Host "==> forking $Upstream ..."
-  # 注意：不能同时传仓库参数和 --remote（gh 会报
-  # "the --remote flag is unsupported when a repository argument is provided"）
+  # NOTE: cannot combine a repository argument with --remote
+  # (gh errors with "the --remote flag is unsupported when a
+  # repository argument is provided")
   gh repo fork $Upstream --clone=false
   if ($LASTEXITCODE -ne 0) { throw "fork failed" }
 } else {
@@ -105,8 +106,9 @@ try {
     return
   }
 
-  # 用 -c 显式指定身份：这个 clone 在临时目录里，不受主仓库的
-  # git config --local 影响，会回落到全局身份，PR 提交就会挂到错的账号上
+  # Pass identity explicitly with -c: this clone lives in a temp dir so it does
+  # not pick up the main repo's `git config --local`, and would otherwise fall
+  # back to the global identity, attributing the commit to the wrong account.
   git -c "user.name=$Owner" -c "user.email=$Owner@users.noreply.github.com" `
       commit -m "New package: $Owner.AIRadar v$pkgVer" *> $null
   if ($LASTEXITCODE -ne 0) { throw "commit failed" }
