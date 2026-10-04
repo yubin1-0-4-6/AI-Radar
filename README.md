@@ -17,10 +17,12 @@ Tauri 2 + React 桌面应用 · 托盘常驻 · 单轮约 2 秒拉完 380+ 条
 
 </div>
 
-![界面截图](docs/screenshot.png)
+![泄漏·匿名内测分类的真实运行截图](docs/screenshot.png)
 
-> 截图摄于桌面版真实运行状态：左侧为分类与数据源健康度，右侧为情报卡片流。
-> 红色「泄漏·匿名内测」分类带可信度标记（`未发布权重` / `有说法·未证实` / `有证据·多源印证`）。
+> 桌面版真实运行状态，只截「泄漏·匿名内测」这一个分类——这是本应用最有辨识度的部分。
+> 每张卡片带**可信度分级**：绿色「有证据·多源印证」、琥珀色「有说法·未证实」，
+> 以及来自 HuggingFace 的「未发布权重」标记。左侧为分类计数与 12 个源的实时健康度。
+> 图中均为该分类的实际条目（模型开启内测但未对外开放、厂商被曝智能体泄露用户图片等）。
 
 ---
 
@@ -124,7 +126,7 @@ winget install --id Rustlang.Rustup -e --source winget
 ```bash
 npm run app:cdp                            # 带 WebView2 调试端口启动
 node scripts/cdp-probe.mjs                 # 读运行中页面的真实状态（源成功率、DOM、报错）
-node scripts/capture-screenshot.mjs out.png  # 从桌面端 WebView 直接截图
+node scripts/capture-screenshot.mjs docs/screenshot.png 1.5 leak  # 只截泄漏分类
 ```
 
 正式配置**不带**调试端口（`src-tauri/tauri.conf.json`），

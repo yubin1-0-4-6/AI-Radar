@@ -1,5 +1,23 @@
-/** 从运行中的桌面应用（WebView2 CDP）直接抓图，得到的是桌面端真实渲染结果 */
+/**
+ * 从运行中的桌面应用（WebView2 CDP）直接抓图，得到的是桌面端真实渲染结果。
+ *
+ * 用法:
+ *   node scripts/capture-screenshot.mjs docs/screenshot.png [scale] [分类]
+ *
+ * 分类可选：all(默认) | leak | free | release | vendor | ecosystem
+ * 传 leak 时会点开侧栏对应分类，只截该类内容——README 配图用这个更贴合产品定位，
+ * 也避免实时聚合的社区内容不可控。
+ */
 import { writeFileSync } from "node:fs";
+
+const FILTER_LABEL = {
+  all: null,
+  leak: "泄漏·匿名内测",
+  free: "免费可用",
+  release: "新模型",
+  vendor: "官方发布",
+  ecosystem: "生态·社区",
+};
 
 const targets = await (await fetch("http://127.0.0.1:9222/json")).json();
 const page = targets.find((t) => t.type === "page" && t.webSocketDebuggerUrl);
@@ -38,8 +56,31 @@ for (let i = 0; i < 60; i++) {
   if (n > 10) break;
   await new Promise((r) => setTimeout(r, 1000));
 }
+
+// 切到指定分类
+const filterKey = process.argv[4] ?? "all";
+const label = FILTER_LABEL[filterKey];
+if (!label) {
+  console.error(`未知分类 "${filterKey}"，可选: ${Object.keys(FILTER_LABEL).join(" / ")}`);
+  process.exit(1);
+}
+if (label) {
+  const clicked = await evalExpr(`(() => {
+    const btn = [...document.querySelectorAll('.side__nav .nav')]
+      .find(b => b.textContent.includes(${JSON.stringify(label)}));
+    if (!btn) return false;
+    btn.click();
+    return true;
+  })()`);
+  if (!clicked) {
+    console.error(`侧栏里找不到「${label}」`);
+    process.exit(1);
+  }
+  await new Promise((r) => setTimeout(r, 900));
+}
+
 const info = await evalExpr(
-  "JSON.stringify({cards:document.querySelectorAll('.card').length, status:document.querySelector('.top__status')?.textContent?.trim()})",
+  "JSON.stringify({cards:document.querySelectorAll('.card').length, status:document.querySelector('.top__status')?.textContent?.trim(), crumb:document.querySelector('.crumb')?.textContent?.trim()})",
 );
 console.log("page state:", info);
 
