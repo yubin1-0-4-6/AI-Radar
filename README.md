@@ -163,6 +163,10 @@ node scripts/capture-screenshot.mjs docs/screenshot.png 1.5 leak  # 只截泄漏
 8. **`.gitignore` 里 `target/` 不能写成 `/target`**：前导斜杠只锚定到文件所在目录，
    会漏掉 `src-tauri/target`（本机 9.5 GB）。
 
+## 参与开发
+
+改动代码、发版流程、自查清单见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
 ## 结构
 
 ```
