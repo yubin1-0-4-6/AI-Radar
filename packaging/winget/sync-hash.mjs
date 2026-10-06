@@ -14,12 +14,17 @@
  *   node packaging/winget/sync-hash.mjs v0.1.0 --ext msi
  */
 import { createHash } from "node:crypto";
+import { readdirSync, renameSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const PKG_DIR = join(HERE, "manifests/y/yubin1-0-4-6/AI-Radar");
+// winget-pkgs 要求的路径是
+//   manifests/<首字母>/<Publisher>/<Package>/<版本号>/<完整 PackageIdentifier>.<类型>.yaml
+// 注意两处容易写错：多一层版本目录，且文件名是完整标识符（不是简称）。
+const PKG_BASE = join(HERE, "manifests/y/yubin1-0-4-6/AIRadar");
+const PKG_ID = "yubin1-0-4-6.AIRadar";
 const REPO = "yubin1-0-4-6/AI-Radar";
 const H = { Accept: "application/vnd.github+json", "User-Agent": "ai-radar-packaging" };
 
@@ -31,6 +36,21 @@ if (!tag) {
 const extArg = process.argv.includes("--ext")
   ? process.argv[process.argv.indexOf("--ext") + 1]
   : "exe";
+const ver = tag.replace(/^v/, "");
+
+/** 0. 定位版本目录，必要时改名（winget-pkgs 要求目录名 == PackageVersion） */
+const existing = readdirSync(PKG_BASE, { withFileTypes: true })
+  .filter((d) => d.isDirectory())
+  .map((d) => d.name);
+const pkgDir = join(PKG_BASE, ver);
+if (!existing.includes(ver)) {
+  if (existing.length !== 1) {
+    console.error(`${PKG_BASE} 下应恰好有 1 个版本目录，实际: ${existing.join(", ") || "(空)"}`);
+    process.exit(1);
+  }
+  renameSync(join(PKG_BASE, existing[0]), pkgDir);
+  console.log(`版本目录 ${existing[0]} -> ${ver}`);
+}
 
 /** 1. 问 API 要真实资产清单 */
 const relRes = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/${tag}`, { headers: H });
@@ -76,26 +96,35 @@ const sha = createHash("sha256").update(buf).digest("hex");
 console.log(`大小 ${buf.length} bytes\nSHA256 ${sha}`);
 
 /** 4. 回填 manifest */
-const file = join(PKG_DIR, "AI-Radar.installer.yaml");
+const file = join(pkgDir, `${PKG_ID}.installer.yaml`);
 let y = await readFile(file, "utf8");
+// InstallerSha256 / InstallerUrl 写在 Installers 列表项内部（带缩进），
+// 所以正则必须捕获并保留缩进；只匹配行首会匹配不到，静默不改而没有任何报错。
+// 同时不要删 `#` 开头的行 —— 文件顶部那行是 schema 提示，删了就没有补全了。
 y = y
-  .replace(/^\s*#.*$/gm, "")
-  .replace(/^InstallerSha256:.*$/m, `InstallerSha256: ${sha}`)
-  .replace(/^InstallerUrl:.*$/m, `InstallerUrl: ${url}`);
+  .replace(/^([ \t]*)InstallerSha256:.*$/m, `$1InstallerSha256: ${sha}`)
+  .replace(/^([ \t]*)InstallerUrl:.*$/m, `$1InstallerUrl: ${url}`);
 await writeFile(file, y, "utf8");
 
-const pv = join(PKG_DIR, "AI-Radar.yaml");
-await writeFile(
-  pv,
-  (await readFile(pv, "utf8")).replace(
-    /^PackageVersion:.*$/m,
-    `PackageVersion: ${tag.replace(/^v/, "")}`,
-  ),
-  "utf8",
-);
+/** 5. 版本号：三个文件里的 PackageVersion 都要同步（目录名已在步骤 0 改过） */
+const touched = [];
+for (const f of [
+  `${PKG_ID}.yaml`,
+  `${PKG_ID}.installer.yaml`,
+  `${PKG_ID}.locale.en-US.yaml`,
+]) {
+  const p = join(pkgDir, f);
+  const src = await readFile(p, "utf8");
+  if (!/^PackageVersion:/m.test(src)) {
+    console.error(`缺少 PackageVersion 字段: ${f}`);
+    process.exit(1);
+  }
+  await writeFile(p, src.replace(/^PackageVersion:.*$/m, `PackageVersion: ${ver}`), "utf8");
+  touched.push(p);
+}
 
-console.log(`\n已更新:\n  ${file}\n  ${pv}`);
+console.log(`\n已更新:\n  ${file}\n  ${touched.join("\n  ")}`);
 console.log("\n下一步：");
 console.log("  winget source update");
 console.log("  winget run Microsoft.WinGet.Lint");
-console.log(`  然后把 ${PKG_DIR} 整个目录复制到 microsoft/winget-pkgs 提 PR`);
+console.log(`  然后把 ${pkgDir} 整个目录复制到 microsoft/winget-pkgs 提 PR`);

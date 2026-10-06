@@ -34,8 +34,14 @@ $ErrorActionPreference = "Continue"
 
 $Owner = "yubin1-0-4-6"
 $Upstream = "microsoft/winget-pkgs"
-$ManifestSrc = Join-Path $PSScriptRoot "manifests\y\$Owner\AI-Radar"
-$TargetDir = "manifests/y/$Owner/AI-Radar"
+# winget-pkgs layout:
+#   manifests/<initial>/<publisher>/<package>/<version>/<identifier>.<type>.yaml
+# The <package> folder MUST equal the second segment of the PackageIdentifier,
+# and manifests live one level deeper, under a directory named after the version.
+$PkgName = "AIRadar"
+$PkgId = "$Owner.$PkgName"
+$ManifestBase = Join-Path $PSScriptRoot "manifests\y\$Owner\$PkgName"
+$TargetBase = "manifests/y/$Owner/$PkgName"
 
 # ---- 0. preflight ----
 # gh writes to stderr on failure; with ErrorActionPreference=Stop that would
@@ -58,12 +64,22 @@ if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
 if ((Invoke-Native "gh" @("auth", "status")) -ne 0) {
   throw "gh is not logged in. Run: gh auth login"
 }
-if (-not (Test-Path $ManifestSrc)) { throw "manifest dir not found: $ManifestSrc" }
+if (-not (Test-Path $ManifestBase)) { throw "manifest dir not found: $ManifestBase" }
 
-$pkgVer = (Select-String -Path (Join-Path $ManifestSrc "AI-Radar.yaml") -Pattern '^PackageVersion:\s*(.+)$').Matches[0].Groups[1].Value.Trim()
+$versionFile = Get-ChildItem -Path $ManifestBase -Recurse -Filter "$PkgId.yaml" -File -ErrorAction SilentlyContinue |
+  Select-Object -First 1
+if (-not $versionFile) { throw "version manifest not found: $PkgId.yaml under $ManifestBase" }
+
+$pkgVer = (Select-String -Path $versionFile.FullName -Pattern '^PackageVersion:\s*(.+)$').Matches[0].Groups[1].Value.Trim()
+$ManifestSrc = $versionFile.DirectoryName
+$TargetDir = "$TargetBase/$pkgVer"
+
 if ($Version) { $Version = $Version.TrimStart("v") }
 if ($Version -and $Version -ne $pkgVer) {
   throw "Version=$Version does not match manifest PackageVersion=$pkgVer. Run sync-hash.mjs $Version first."
+}
+if ((Split-Path -Leaf $ManifestSrc) -ne $pkgVer) {
+  throw "Manifest folder '$(Split-Path -Leaf $ManifestSrc)' must equal PackageVersion '$pkgVer'. Run sync-hash.mjs $pkgVer first."
 }
 Write-Host "==> submitting version: $pkgVer"
 
@@ -91,6 +107,18 @@ Push-Location $WorkDir
 try {
   git sparse-checkout set manifests/y *> $null
   $branch = (git rev-parse --abbrev-ref HEAD).Trim()
+
+  # Drop any stale sibling folder left behind by an earlier layout so the PR
+  # never carries two directory shapes at once (that broke validation once).
+  $ownerDir = Join-Path $WorkDir "manifests\y\$Owner"
+  if (Test-Path $ownerDir) {
+    Get-ChildItem -Path $ownerDir -Directory | Where-Object { $_.Name -ne $PkgName } | ForEach-Object {
+      $rel = $_.FullName.Substring($WorkDir.Length + 1).Replace('\', '/')
+      git rm -r --quiet $rel *> $null
+      if ($LASTEXITCODE -ne 0) { throw "git rm failed for $rel" }
+      Write-Host "==> removed stale dir: $rel"
+    }
+  }
 
   $dst = Join-Path $WorkDir ($TargetDir -replace "/", "\")
   New-Item -ItemType Directory -Force -Path $dst | Out-Null
