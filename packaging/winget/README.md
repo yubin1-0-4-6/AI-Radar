@@ -71,6 +71,33 @@ manifests/y/yubin1-0-4-6/AIRadar/0.1.1/
 `Scope: user` 对应安装行为：`%LOCALAPPDATA%\AI Radar`，不写注册表不需要管理员权限
 （与 `tauri.conf.json` 里 `nsis.installMode: currentUser` 一致）。
 
+## ManifestVersion 会被周期性弃用
+
+`ManifestVersion` 不是写一次就永久有效。winget-pkgs 会定期弃用旧版本，
+到时 PR 会被打回并提示 `Please use version X.Y.Z`。这**不是内容错误**，
+按提示改版本号即可。
+
+三份文件各改两处：
+
+```yaml
+ManifestVersion: 1.28.0
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.<类型>.1.28.0.schema.json
+```
+
+改完要确认新 schema 仍接受现有字段——枚举值会变（例如 `InstallerType` 的
+合法值、必填字段的增减），光改版本号可能引出新错误：
+
+```powershell
+# 看 required 字段和 InstallerType 枚举
+(Invoke-WebRequest https://aka.ms/winget-manifest.installer.1.28.0.schema.json -UseBasicParsing).Content |
+  ConvertFrom-Json | Select-Object -ExpandProperty definitions
+```
+
+这里**刻意不写死「当前版本号」**，因为它一定会过期。以审核人在 PR 里给的
+那个版本为准。
+
+经历过的版本：`1.6.0`（2026-10-30 被弃用）→ `1.28.0`
+
 ## 提交前检查
 
 ```powershell
